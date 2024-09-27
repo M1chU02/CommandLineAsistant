@@ -45,11 +45,11 @@ function processCommand(command) {
     case "search":
       handleSearch(args);
       break;
-    case "quote":
-      displayRandomQuote();
-      break;
     case "joke":
       displayRandomJoke();
+      break;
+    case "clear":
+      handleClear();
       break;
     case "help":
       displayHelp(args);
@@ -324,6 +324,12 @@ function removeTask(id) {
   }
 
   tasks.splice(taskIndex, 1);
+
+  // If no tasks are left, reset the taskIdCounter to 1
+  if (tasks.length === 0) {
+    taskIdCounter = 1;
+  }
+
   saveTasks(); // Save the updated task list to localStorage
   appendToOutput(`Task ${id} removed.`);
 }
@@ -605,29 +611,76 @@ function appendToOutput(message) {
   output.scrollTop = output.scrollHeight;
 }
 
+// Handle the search command
 function handleSearch(args) {
-  // Placeholder for web search
-  appendToOutput(`Searching the web for: ${args.join(" ")}`);
+  if (args.length === 0) {
+    appendToOutput("Usage: search [query]");
+    return;
+  }
+
+  // Join the arguments to form the search query
+  const query = args.join(" ");
+
+  const searchEngine = "https://www.google.com/search?q=";
+
+  // Open the search in a new tab
+  const searchUrl = searchEngine + encodeURIComponent(query);
+  window.open(searchUrl, "_blank");
+
+  appendToOutput(`Searching for: "${query}"`);
 }
 
-function displayRandomQuote() {
-  // Placeholder for random quotes
-  appendToOutput(
-    "Here's a random quote: 'The only limit to our realization of tomorrow is our doubts of today.' - Franklin D. Roosevelt"
-  );
+// General output handler
+function appendToOutput(message) {
+  const output = document.getElementById("output");
+  const div = document.createElement("div");
+  div.textContent = message;
+  output.appendChild(div);
+
+  // Scroll to bottom
+  output.scrollTop = output.scrollHeight;
 }
 
 function displayRandomJoke() {
-  // Placeholder for random jokes
-  appendToOutput(
-    "Here's a joke: Why don't programmers like nature? It has too many bugs."
-  );
+  generateJoke()
+    .then((jokeToAppend) => {
+      appendToOutput(jokeToAppend);
+    })
+    .catch((error) => {
+      console.error("Error fetching joke:", error);
+    });
+}
+
+function generateJoke() {
+  const url = "https://v2.jokeapi.dev/joke/Any";
+  return fetch(url)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.type === "twopart") {
+        let setup = data.setup;
+        let delivery = data.delivery;
+        return setup + "\n" + delivery;
+      } else if (data.type === "single") {
+        return data.joke;
+      } else {
+        throw new Error("Unknown joke type");
+      }
+    })
+    .catch((error) => {
+      console.error("Error generating joke:", error);
+      throw error;
+    });
 }
 
 function displayHelp(args) {
   if (args.length === 0) {
     appendToOutput(
-      "Available commands: time, date, weather, systeminfo, task, timer, stopwatch, countdown, search, quote, joke, help, exit"
+      "Available commands: time, date, weather, systeminfo, task, timer, stopwatch, countdown, search, joke, help, exit"
     );
   } else {
     appendToOutput("Detailed help for command: " + args.join(" "));
@@ -639,4 +692,21 @@ function exitApp() {
   setTimeout(() => {
     window.close();
   }, 1000);
+}
+
+// Handle the clear command
+function handleClear() {
+  const output = document.getElementById("output");
+  output.innerHTML = ""; // Clear the output by setting the innerHTML to an empty string
+}
+
+// General output handler
+function appendToOutput(message) {
+  const output = document.getElementById("output");
+  const div = document.createElement("div");
+  div.textContent = message;
+  output.appendChild(div);
+
+  // Scroll to bottom
+  output.scrollTop = output.scrollHeight;
 }
